@@ -6,18 +6,21 @@ set -e
 # ✅ 1. Install Java 17 & Jenkins
 # -------------------------------
 
-sudo amazon-linux-extras enable corretto17
+# Use yum directly — skip amazon-linux-extras
 sudo yum install -y java-17-amazon-corretto
 
+# Jenkins repo and key
 sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
 sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+# Upgrade packages and install Jenkins, Git
 sudo yum upgrade -y
 sudo yum install -y jenkins git
 
 # Optional: Change Jenkins port to 8081
-sudo sed -i -e 's/Environment="JENKINS_PORT=[0-9]\+"/Environment="JENKINS_PORT=8081"/' /usr/lib/systemd/system/jenkins.service
+sudo sed -i -e 's/Environment="JENKINS_PORT=.*/Environment="JENKINS_PORT=8081"/' /usr/lib/systemd/system/jenkins.service
 
-# Start Jenkins
+# Start and enable Jenkins
 sudo systemctl daemon-reload
 sudo systemctl enable jenkins
 sudo systemctl start jenkins
@@ -27,20 +30,21 @@ sudo systemctl start jenkins
 # -------------------------------
 
 sudo yum install -y docker
-sudo systemctl start docker
 sudo systemctl enable docker
-sudo usermod -aG docker $USER
+sudo systemctl start docker
+
+# Add users to docker group
+sudo usermod -aG docker ec2-user
 sudo usermod -aG docker jenkins
 
-# Apply group changes
-newgrp docker
+# Note: `newgrp docker` applies only in interactive login shells
 
 # -------------------------------
-# ✅ 3. Install AWS CLI
+# ✅ 3. Install AWS CLI v2
 # -------------------------------
 
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-sudo yum install unzip -y
+sudo yum install -y unzip
 unzip awscliv2.zip
 sudo ./aws/install
 
@@ -72,3 +76,10 @@ sudo mv /tmp/eksctl /usr/local/bin
 # -------------------------------
 
 sudo yum install -y jq
+
+# -------------------------------
+# ✅ 8. Print final service statuses
+# -------------------------------
+
+sudo systemctl status jenkins
+sudo systemctl status docker
